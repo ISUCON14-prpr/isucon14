@@ -36,6 +36,9 @@ CREATE TABLE chairs
 )
   COMMENT = '椅子情報テーブル';
 
+-- chairs テーブルに対して
+ALTER TABLE chairs ADD INDEX idx_is_active (is_active);
+
 DROP TABLE IF EXISTS chair_locations;
 CREATE TABLE chair_locations
 (
@@ -94,6 +97,10 @@ CREATE TABLE rides
 )
   COMMENT = 'ライド情報テーブル';
 
+-- rides テーブルに対して
+ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
+
+
 DROP TABLE IF EXISTS ride_statuses;
 CREATE TABLE ride_statuses
 (
@@ -106,6 +113,9 @@ CREATE TABLE ride_statuses
   PRIMARY KEY (id)
 )
   COMMENT = 'ライドステータスの変更履歴テーブル';
+
+-- ride_statuses テーブルに対して
+ALTER TABLE ride_statuses ADD INDEX idx_ride_id_chair_sent_at (ride_id, chair_sent_at);
 
 DROP TABLE IF EXISTS owners;
 CREATE TABLE owners
