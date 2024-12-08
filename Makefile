@@ -132,7 +132,6 @@ status:
 git-pull:
 	@current_branch=$$(git rev-parse --abbrev-ref HEAD) && \
 	echo "今は$$current_branchブランチです"
-	current_branch=$$(git rev-parse --abbrev-ref HEAD)
 
 	@current_branch=$$(git rev-parse --abbrev-ref HEAD); \
 	echo "今は$$current_branchブランチです。このブランチで作業を続けますか? [y/N]:"; \
@@ -149,7 +148,7 @@ git-pull:
 	@echo "git pull"
 
 	git pull origin $$current_branch
-	ssh isucon14-2 "cd ~/webapp && git fetch && git switch ${current_branch} && git pull origin ${current_branch}"
+	bash ./git-switch-remote-web.sh $$current_branch
 
 .PHONY: build-and-restart
 restart-nginx:
