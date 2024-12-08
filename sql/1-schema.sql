@@ -99,6 +99,7 @@ CREATE TABLE rides
 
 -- rides テーブルに対して
 ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
+ALTER TABLE rides ADD INDEX idx_user_id (user_id);
 
 
 DROP TABLE IF EXISTS ride_statuses;
