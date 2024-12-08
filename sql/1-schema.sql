@@ -95,10 +95,10 @@ CREATE TABLE rides
     pickup_longitude      INTEGER     NOT NULL COMMENT '配車位置(緯度)',
     destination_latitude  INTEGER     NOT NULL COMMENT '目的地(経度)',
     destination_longitude INTEGER     NOT NULL COMMENT '目的地(緯度)',
-    distance              INTEGER DEFAULT 0 COMMENT '移動距離',
     evaluation            INTEGER NULL     COMMENT '評価',
     created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '要求日時',
     updated_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '状態更新日時',
+    distance              INTEGER DEFAULT 0 COMMENT '移動距離',
     PRIMARY KEY (id)
 ) COMMENT = 'ライド情報テーブル';
 
