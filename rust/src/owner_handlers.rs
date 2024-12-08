@@ -132,7 +132,7 @@ async fn owner_get_sales(
     let mut model_sales_by_model = HashMap::new();
 
     let chair_ids = chairs.iter().map(|c| c.id.clone()).collect::<Vec<_>>();
-    let in_clause = format!("({})", chair_ids.iter().map(|_| "?").collect::<Vec<_>>().join(","));
+    let in_clause = chair_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",").to_string();
 
     let query_str = format!("SELECT rides.* FROM rides JOIN ride_statuses ON rides.id = ride_statuses.ride_id WHERE chair_id IN ({}) AND status = 'COMPLETED' AND updated_at BETWEEN ? AND ? + INTERVAL 999 MICROSECOND", in_clause);
     let mut query = sqlx::query_as(&query_str);
