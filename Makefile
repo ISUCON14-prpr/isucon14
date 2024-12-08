@@ -148,7 +148,6 @@ git-pull:
 	@echo "git pull"
 
 	git pull origin $$current_branch
-	bash ./git-switch-remote-web.sh $$current_branch
 
 .PHONY: build-and-restart
 restart-nginx:
