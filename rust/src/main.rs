@@ -1,4 +1,5 @@
 use axum::extract::State;
+use isuride::internal_handlers::internal_get_matching_in_thread;
 use isuride::{AppState, Error};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -51,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
         } else {
             TcpListener::bind(&SocketAddr::from(([0, 0, 0, 0], 8080))).await?
         };
+
     axum::serve(tcp_listener, app).await?;
 
     Ok(())
