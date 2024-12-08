@@ -104,14 +104,7 @@ CREATE TABLE rides
 
 -- rides テーブルに対して
 ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
-
-DELIMITER $$
-CREATE TRIGGER CalculateManhattanDistance BEFORE INSERT ON rides
-    FOR EACH ROW BEGIN
-    SET NEW.distance = ABS(NEW.pickup_latitude - NEW.destination_latitude) + ABS(NEW.pickup_longitude - NEW.destination_longitude);
-END$$
-DELIMITER ;
-
+ALTER TABLE rides ADD INDEX idx_distance (distance);
 
 DROP TABLE IF EXISTS ride_statuses;
 CREATE TABLE ride_statuses
