@@ -132,6 +132,7 @@ status:
 git-pull:
 	@current_branch=$$(git rev-parse --abbrev-ref HEAD) && \
 	echo "今は$$current_branchブランチです"
+	current_branch=$$(git rev-parse --abbrev-ref HEAD)
 
 	@current_branch=$$(git rev-parse --abbrev-ref HEAD); \
 	echo "今は$$current_branchブランチです。このブランチで作業を続けますか? [y/N]:"; \
