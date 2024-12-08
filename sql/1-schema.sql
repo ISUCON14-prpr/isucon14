@@ -88,23 +88,29 @@ CREATE TABLE payment_tokens
 DROP TABLE IF EXISTS rides;
 CREATE TABLE rides
 (
-  id                    VARCHAR(26) NOT NULL COMMENT 'ライドID',
-  user_id               VARCHAR(26) NOT NULL COMMENT 'ユーザーID',
-  chair_id              VARCHAR(26) NULL     COMMENT '割り当てられた椅子ID',
-  pickup_latitude       INTEGER     NOT NULL COMMENT '配車位置(経度)',
-  pickup_longitude      INTEGER     NOT NULL COMMENT '配車位置(緯度)',
-  destination_latitude  INTEGER     NOT NULL COMMENT '目的地(経度)',
-  destination_longitude INTEGER     NOT NULL COMMENT '目的地(緯度)',
-  distance              INTEGER              COMMENT '移動距離',
-  evaluation            INTEGER     NULL     COMMENT '評価',
-  created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '要求日時',
-  updated_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '状態更新日時',
-  PRIMARY KEY (id)
-)
-  COMMENT = 'ライド情報テーブル';
+    id                    VARCHAR(26) NOT NULL COMMENT 'ライドID',
+    user_id               VARCHAR(26) NOT NULL COMMENT 'ユーザーID',
+    chair_id              VARCHAR(26) NULL     COMMENT '割り当てられた椅子ID',
+    pickup_latitude       INTEGER     NOT NULL COMMENT '配車位置(経度)',
+    pickup_longitude      INTEGER     NOT NULL COMMENT '配車位置(緯度)',
+    destination_latitude  INTEGER     NOT NULL COMMENT '目的地(経度)',
+    destination_longitude INTEGER     NOT NULL COMMENT '目的地(緯度)',
+    distance              INTEGER DEFAULT 0 COMMENT '移動距離',
+    evaluation            INTEGER NULL     COMMENT '評価',
+    created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '要求日時',
+    updated_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '状態更新日時',
+    PRIMARY KEY (id)
+) COMMENT = 'ライド情報テーブル';
 
 -- rides テーブルに対して
 ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
+
+DELIMITER $$
+CREATE TRIGGER CalculateManhattanDistance BEFORE INSERT ON rides
+    FOR EACH ROW BEGIN
+    SET NEW.distance = ABS(NEW.pickup_latitude - NEW.destination_latitude) + ABS(NEW.pickup_longitude - NEW.destination_longitude);
+END$$
+DELIMITER;
 
 
 DROP TABLE IF EXISTS ride_statuses;
