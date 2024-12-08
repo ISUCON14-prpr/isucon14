@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app_state = AppState { pool: pool.clone() };
+    let app_state = AppState { pool };
 
     let app = axum::Router::new()
         .route("/api/initialize", axum::routing::post(post_initialize))
