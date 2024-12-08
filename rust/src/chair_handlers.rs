@@ -5,7 +5,7 @@ use axum_extra::extract::CookieJar;
 use ulid::Ulid;
 
 use crate::models::{Chair, ChairLocation, Owner, Ride, RideStatus, User};
-use crate::{AppState, Coordinate, Error};
+use crate::{calculate_distance, AppState, Coordinate, Error};
 
 pub fn chair_routes(app_state: AppState) -> axum::Router<AppState> {
     let routes =
@@ -121,6 +121,15 @@ async fn chair_post_coordinate(
 ) -> Result<axum::Json<ChairPostCoordinateResponse>, Error> {
     let mut tx = pool.begin().await?;
 
+
+    // 前回の位置情報を取得
+    let prev_location: Option<ChairLocation> = sqlx::query_as(
+        "SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY created_at DESC LIMIT 1"
+    )
+    .bind(&chair.id)
+    .fetch_optional(&mut *tx)
+    .await?;
+
     let chair_location_id = Ulid::new().to_string();
     sqlx::query(
         "INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)",
@@ -131,6 +140,29 @@ async fn chair_post_coordinate(
     .bind(req.longitude)
     .execute(&mut *tx)
     .await?;
+
+    // 移動距離を計算して更新
+    if let Some(prev) = prev_location {
+        let distance = calculate_distance(
+            prev.latitude,
+            prev.longitude,
+            req.latitude,
+            req.longitude
+        );
+
+        sqlx::query(
+            r#"INSERT INTO chair_distances (chair_id, total_distance, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP(6))
+            ON DUPLICATE KEY UPDATE
+                total_distance = total_distance + ?,
+                updated_at = CURRENT_TIMESTAMP(6)"#
+        )
+        .bind(&chair.id)
+        .bind(distance)  // 新規作成時の初期値
+        .bind(distance)  // 更新時の加算値
+        .execute(&mut *tx)
+        .await?;
+    }
 
     let location: ChairLocation = sqlx::query_as("SELECT * FROM chair_locations WHERE id = ?")
         .bind(chair_location_id)
