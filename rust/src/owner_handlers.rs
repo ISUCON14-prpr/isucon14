@@ -247,27 +247,43 @@ async fn owner_get_chairs(
     State(AppState { pool, .. }): State<AppState>,
     axum::Extension(owner): axum::Extension<Owner>,
 ) -> Result<axum::Json<OwnerGetChairResponse>, Error> {
-    let chairs: Vec<ChairWithDetail> = sqlx::query_as(r#"SELECT id,
-       owner_id,
-       name,
-       access_token,
-       model,
-       is_active,
-       created_at,
-       updated_at,
-       IFNULL(total_distance, 0) AS total_distance,
-       total_distance_updated_at
-FROM chairs
-       LEFT JOIN (SELECT chair_id,
-                          SUM(IFNULL(distance, 0)) AS total_distance,
-                          MAX(created_at)          AS total_distance_updated_at
-                   FROM (SELECT chair_id,
-                                created_at,
-                                ABS(latitude - LAG(latitude) OVER (PARTITION BY chair_id ORDER BY created_at)) +
-                                ABS(longitude - LAG(longitude) OVER (PARTITION BY chair_id ORDER BY created_at)) AS distance
-                         FROM chair_locations) tmp
-                   GROUP BY chair_id) distance_table ON distance_table.chair_id = chairs.id
-WHERE owner_id = ?
+    let chairs: Vec<ChairWithDetail> = sqlx::query_as(r#"
+        WITH latest_locations AS (
+            SELECT 
+                chair_id,
+                latitude,
+                longitude,
+                created_at,
+                LAG(latitude) OVER w AS prev_latitude,
+                LAG(longitude) OVER w AS prev_longitude
+            FROM chair_locations
+            WINDOW w AS (PARTITION BY chair_id ORDER BY created_at)
+        ),
+        distance_calc AS (
+            SELECT 
+                chair_id,
+                SUM(
+                    ABS(COALESCE(latitude - prev_latitude, 0)) + 
+                    ABS(COALESCE(longitude - prev_longitude, 0))
+                ) as total_distance,
+                MAX(created_at) as total_distance_updated_at
+            FROM latest_locations
+            GROUP BY chair_id
+        )
+        SELECT 
+            c.id,
+            c.owner_id,
+            c.name,
+            c.access_token,
+            c.model,
+            c.is_active,
+            c.created_at,
+            c.updated_at,
+            COALESCE(dc.total_distance, 0) as total_distance,
+            dc.total_distance_updated_at
+        FROM chairs c
+        LEFT JOIN distance_calc dc ON c.id = dc.chair_id
+        WHERE c.owner_id = ?
     "#).bind(owner.id).fetch_all(&pool).await?;
 
     Ok(axum::Json(OwnerGetChairResponse {

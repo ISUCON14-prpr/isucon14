@@ -36,6 +36,8 @@ CREATE TABLE chairs
 )
   COMMENT = '椅子情報テーブル';
 
+-- chairsテーブルにowner_idのインデックスを追加（まだない場合）
+CREATE INDEX idx_chairs_owner_id ON chairs (owner_id);
 -- chairs テーブルに対して
 ALTER TABLE chairs ADD INDEX idx_is_active (is_active);
 
@@ -50,6 +52,9 @@ CREATE TABLE chair_locations
   PRIMARY KEY (id)
 )
   COMMENT = '椅子の現在位置情報テーブル';
+-- chair_locationsテーブルに複合インデックスを追加
+CREATE INDEX idx_chair_locations_chair_id_created_at ON chair_locations (chair_id, created_at);
+
 
 DROP TABLE IF EXISTS users;
 CREATE TABLE users
