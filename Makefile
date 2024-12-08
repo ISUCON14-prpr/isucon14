@@ -16,7 +16,7 @@ change-language: stop-$(DEFAULT_LANGUAGE) start-$(LANGUAGE)
 # ------------------------------------------------------------
 # デプロイ
 .PHONY: deploy
-deploy: git-pull build mysql-setting-cp-from-webapp nginx-setting-cp-from-webapp  log-permit del-log-file restart-service restart-nginx restart-mysql 
+deploy: git-pull build mysql-setting-cp-from-webapp nginx-setting-cp-from-webapp  log-permit del-log-file restart-service restart-nginx restart-mysql
 # ------------------------------------------------------------
 # ------------------------------------------------------------
 # ベンチを叩く＆ログを取得するls
