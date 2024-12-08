@@ -248,43 +248,17 @@ async fn owner_get_chairs(
     axum::Extension(owner): axum::Extension<Owner>,
 ) -> Result<axum::Json<OwnerGetChairResponse>, Error> {
     let chairs: Vec<ChairWithDetail> = sqlx::query_as(r#"
-        WITH latest_locations AS (
-            SELECT 
-                chair_id,
-                latitude,
-                longitude,
-                created_at,
-                LAG(latitude) OVER w AS prev_latitude,
-                LAG(longitude) OVER w AS prev_longitude
-            FROM chair_locations
-            WINDOW w AS (PARTITION BY chair_id ORDER BY created_at)
-        ),
-        distance_calc AS (
-            SELECT 
-                chair_id,
-                SUM(
-                    ABS(COALESCE(latitude - prev_latitude, 0)) + 
-                    ABS(COALESCE(longitude - prev_longitude, 0))
-                ) as total_distance,
-                MAX(created_at) as total_distance_updated_at
-            FROM latest_locations
-            GROUP BY chair_id
-        )
         SELECT 
-            c.id,
-            c.owner_id,
-            c.name,
-            c.access_token,
-            c.model,
-            c.is_active,
-            c.created_at,
-            c.updated_at,
-            COALESCE(dc.total_distance, 0) as total_distance,
-            dc.total_distance_updated_at
+            c.*,
+            COALESCE(cd.total_distance, 0) as total_distance,
+            cd.updated_at as total_distance_updated_at
         FROM chairs c
-        LEFT JOIN distance_calc dc ON c.id = dc.chair_id
+        LEFT JOIN chair_distances cd ON c.id = cd.chair_id
         WHERE c.owner_id = ?
-    "#).bind(owner.id).fetch_all(&pool).await?;
+    "#)
+        .bind(owner.id)
+        .fetch_all(&pool)
+        .await?;
 
     Ok(axum::Json(OwnerGetChairResponse {
         chairs: chairs

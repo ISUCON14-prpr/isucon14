@@ -5,7 +5,7 @@ use axum_extra::extract::CookieJar;
 use ulid::Ulid;
 
 use crate::models::{Chair, ChairLocation, Owner, Ride, RideStatus, User};
-use crate::{AppState, Coordinate, Error};
+use crate::{calculate_distance, AppState, Coordinate, Error};
 
 pub fn chair_routes(app_state: AppState) -> axum::Router<AppState> {
     let routes =
@@ -121,9 +121,16 @@ async fn chair_post_coordinate(
 ) -> Result<axum::Json<ChairPostCoordinateResponse>, Error> {
     let mut tx = pool.begin().await?;
 
+    let prev_location: Option<ChairLocation> = sqlx::query_as(
+        "SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY created_at DESC LIMIT 1"
+    )
+    .bind(&chair.id)
+    .fetch_optional(&mut *tx)
+    .await?;
+
     let chair_location_id = Ulid::new().to_string();
     sqlx::query(
-        "INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)",
+        "INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)"
     )
     .bind(&chair_location_id)
     .bind(&chair.id)
@@ -132,44 +139,42 @@ async fn chair_post_coordinate(
     .execute(&mut *tx)
     .await?;
 
-    let location: ChairLocation = sqlx::query_as("SELECT * FROM chair_locations WHERE id = ?")
-        .bind(chair_location_id)
-        .fetch_one(&mut *tx)
+    if let Some(prev) = prev_location {
+        let distance = calculate_distance(
+            prev.latitude,
+            prev.longitude,
+            req.latitude,
+            req.longitude
+        );
+
+        sqlx::query(
+            r#"INSERT INTO chair_distances (chair_id, total_distance, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP(6))
+            ON DUPLICATE KEY UPDATE
+                total_distance = total_distance + ?,
+                updated_at = CURRENT_TIMESTAMP(6)"#
+        )
+        .bind(&chair.id)
+        .bind(distance)
+        .bind(distance)
+        .execute(&mut *tx)
         .await?;
-
-    let ride: Option<Ride> =
-        sqlx::query_as("SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1")
-            .bind(chair.id)
-            .fetch_optional(&mut *tx)
-            .await?;
-    if let Some(ride) = ride {
-        let status = crate::get_latest_ride_status(&mut *tx, &ride.id).await?;
-        if status != "COMPLETED" && status != "CANCELED" {
-            if req.latitude == ride.pickup_latitude
-                && req.longitude == ride.pickup_longitude
-                && status == "ENROUTE"
-            {
-                sqlx::query("INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)")
-                    .bind(Ulid::new().to_string())
-                    .bind(&ride.id)
-                    .bind("PICKUP")
-                    .execute(&mut *tx)
-                    .await?;
-            }
-
-            if req.latitude == ride.destination_latitude
-                && req.longitude == ride.destination_longitude
-                && status == "CARRYING"
-            {
-                sqlx::query("INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)")
-                    .bind(Ulid::new().to_string())
-                    .bind(&ride.id)
-                    .bind("ARRIVED")
-                    .execute(&mut *tx)
-                    .await?;
-            }
-        }
+    } else {
+        sqlx::query(
+            "INSERT INTO chair_distances (chair_id, total_distance, updated_at)
+            VALUES (?, 0, CURRENT_TIMESTAMP(6))"
+        )
+        .bind(&chair.id)
+        .execute(&mut *tx)
+        .await?;
     }
+
+    let location: ChairLocation = sqlx::query_as(
+        "SELECT * FROM chair_locations WHERE id = ?"
+    )
+    .bind(chair_location_id)
+    .fetch_one(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 
