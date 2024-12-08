@@ -148,7 +148,7 @@ git-pull:
 	@echo "git pull"
 
 	git pull origin $$current_branch
-	ssh isucon14-2 "cd ~/webapp && git fetch && git switch $$current_branch && git pull origin $$current_branch"
+	ssh isucon14-2 "cd ~/webapp && git fetch && git switch ${current_branch} && git pull origin ${current_branch}"
 
 .PHONY: build-and-restart
 restart-nginx:
