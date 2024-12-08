@@ -1,0 +1,13 @@
+/public/
+/sql/3-master-data.sql.gz
+/ruby/
+/python/
+/php/
+/node/
+/java/
+/csharp/
+/c/
+/cpp/
+/rust/target/
+/nodejs/
+/perl/
