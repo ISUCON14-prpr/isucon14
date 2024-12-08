@@ -53,16 +53,7 @@ async fn main() -> anyhow::Result<()> {
             TcpListener::bind(&SocketAddr::from(([0, 0, 0, 0], 8080))).await?
         };
 
-    let handle = std::thread::spawn(|| async move {
-        loop  {
-            let _ = internal_get_matching_in_thread(pool.clone()).await;
-            println!("internal_get_matching_in_thread done");
-            // 0.5秒待つ
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        }
-    });
     axum::serve(tcp_listener, app).await?;
-    handle.join().unwrap().await;
 
     Ok(())
 }
