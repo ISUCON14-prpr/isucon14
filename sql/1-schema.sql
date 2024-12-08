@@ -117,6 +117,8 @@ CREATE TABLE ride_statuses
 -- ride_statuses テーブルに対して
 ALTER TABLE ride_statuses ADD INDEX idx_ride_id_chair_sent_at (ride_id, chair_sent_at);
 
+ALTER TABLE ride_statuses ADD INDEX idx_ride_id_created_at (ride_id, created_at DESC);
+
 DROP TABLE IF EXISTS owners;
 CREATE TABLE owners
 (
