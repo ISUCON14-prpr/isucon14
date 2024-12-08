@@ -16,15 +16,16 @@ async fn internal_get_matching(
     State(AppState { pool, .. }): State<AppState>,
 ) -> Result<StatusCode, Error> {
     // MEMO: 一旦最も待たせているリクエストに適当な空いている椅子マッチさせる実装とする。おそらくもっといい方法があるはず…
-    let Some(ride): Option<Ride> =
-        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at LIMIT 1")
-            .fetch_optional(&pool)
-            .await?
-    else {
+    let rides: Vec<Ride> =
+        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at LIMIT 10")
+            .fetch_all(&pool)
+            .await?;
+    
+    if rides.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
-    };
-
-    for _ in 0..10 {
+    }
+  
+    for ride in rides {
         let Some(matched): Option<Chair> =
             sqlx::query_as("SELECT * FROM chairs WHERE is_active = TRUE ORDER BY RAND() LIMIT 1")
                 .fetch_optional(&pool)
