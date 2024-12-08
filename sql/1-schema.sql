@@ -110,7 +110,7 @@ CREATE TRIGGER CalculateManhattanDistance BEFORE INSERT ON rides
     FOR EACH ROW BEGIN
     SET NEW.distance = ABS(NEW.pickup_latitude - NEW.destination_latitude) + ABS(NEW.pickup_longitude - NEW.destination_longitude);
 END$$
-DELIMITER;
+DELIMITER ;
 
 
 DROP TABLE IF EXISTS ride_statuses;
