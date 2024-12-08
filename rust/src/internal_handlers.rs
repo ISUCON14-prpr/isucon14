@@ -17,7 +17,7 @@ async fn internal_get_matching(
 ) -> Result<StatusCode, Error> {
     // MEMO: 一旦最も待たせているリクエストに適当な空いている椅子マッチさせる実装とする。おそらくもっといい方法があるはず…
     let rides: Vec<Ride> =
-        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at LIMIT 10")
+        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at ASC, evaluation DESC LIMIT 10")
             .fetch_all(&pool)
             .await?;
 
@@ -66,7 +66,7 @@ async fn internal_get_matching(
 pub async fn internal_get_matching_in_thread(pool: sqlx::MySqlPool) -> Result<(), Error> {
     // MEMO: 一旦最も待たせているリクエストに適当な空いている椅子マッチさせる実装とする。おそらくもっといい方法があるはず…
     let rides: Vec<Ride> =
-        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at LIMIT 10")
+        sqlx::query_as("SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at ASC LIMIT 10")
             .fetch_all(&pool)
             .await?;
 
