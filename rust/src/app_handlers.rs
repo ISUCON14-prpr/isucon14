@@ -577,6 +577,9 @@ async fn app_get_notification(
     State(AppState { pool, .. }): State<AppState>,
     axum::Extension(user): axum::Extension<User>,
 ) -> Result<axum::Json<AppGetNotificationResponse>, Error> {
+    /// 1s
+    const RETRY_AFTER_MS: i32 = 1000;
+
     let mut tx = pool.begin().await?;
 
     let Some(ride): Option<Ride> =
@@ -587,7 +590,7 @@ async fn app_get_notification(
     else {
         return Ok(axum::Json(AppGetNotificationResponse {
             data: None,
-            retry_after_ms: Some(60000),
+            retry_after_ms: Some(30),
         }));
     };
 
@@ -659,7 +662,7 @@ async fn app_get_notification(
 
     Ok(axum::Json(AppGetNotificationResponse {
         data: Some(data),
-        retry_after_ms: Some(60000),
+        retry_after_ms: Some(RETRY_AFTER_MS),
     }))
 }
 
