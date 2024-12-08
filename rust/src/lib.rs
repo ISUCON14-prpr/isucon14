@@ -79,16 +79,33 @@ pub async fn has_completed_status<'e, E>(
 where
     E: 'e + sqlx::Executor<'e, Database = sqlx::MySql>,
 {
-    let query = r#"
+    if ride_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let placeholders = ride_ids
+        .iter()
+        .map(|_| "?")
+        .collect::<Vec<_>>()
+        .join(", ");  
+
+    let query = format!(
+        r#"
         SELECT 1
         FROM ride_statuses
-        WHERE ride_id IN (?)
+        WHERE ride_id IN ({})
         AND status = 'COMPLETED'
         LIMIT 1
-    "#;
+    "#,
+        placeholders
+    );
 
-    let result: Option<i32> = sqlx::query_scalar(query)
-        .bind(ride_ids) 
+    let mut query_with_params = sqlx::query_scalar(&query);
+    for ride_id in ride_ids {
+        query_with_params = query_with_params.bind(ride_id);
+    }
+
+    let result: Option<i32> = query_with_params
         .fetch_optional(executor)
         .await?;
 
