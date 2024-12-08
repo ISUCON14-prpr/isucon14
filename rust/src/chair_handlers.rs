@@ -2,6 +2,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
+use chrono::{DateTime, Utc};
 use ulid::Ulid;
 
 use crate::models::{Chair, ChairLocation, Owner, Ride, RideStatus, User};
@@ -114,6 +115,27 @@ struct ChairPostCoordinateResponse {
     recorded_at: i64,
 }
 
+
+#[derive(Debug, sqlx::FromRow)]
+struct ChairLocationWithRide {
+    // ChairLocation fields
+    id: String,
+    chair_id: String,
+    latitude: i32,
+    longitude: i32,
+    created_at: DateTime<Utc>,
+    // Ride fields (all optional because of LEFT JOIN)
+    ride_id: Option<String>,
+    user_id: Option<String>,
+    pickup_latitude: Option<i32>,
+    pickup_longitude: Option<i32>,
+    destination_latitude: Option<i32>,
+    destination_longitude: Option<i32>,
+    evaluation: Option<i32>,
+    ride_created_at: Option<DateTime<Utc>>,
+    ride_updated_at: Option<DateTime<Utc>>,
+}
+
 async fn chair_post_coordinate(
     State(AppState { pool, .. }): State<AppState>,
     axum::Extension(chair): axum::Extension<Chair>,
@@ -132,16 +154,60 @@ async fn chair_post_coordinate(
     .execute(&mut *tx)
     .await?;
 
-    let location: ChairLocation = sqlx::query_as("SELECT * FROM chair_locations WHERE id = ?")
-        .bind(chair_location_id)
-        .fetch_one(&mut *tx)
-        .await?;
+    let result: ChairLocationWithRide = sqlx::query_as(
+        r#"
+        SELECT 
+            cl.*,
+            r.id as ride_id,
+            r.user_id,
+            r.pickup_latitude,
+            r.pickup_longitude,
+            r.destination_latitude,
+            r.destination_longitude,
+            r.evaluation,
+            r.created_at as ride_created_at,
+            r.updated_at as ride_updated_at
+        FROM chair_locations cl
+        LEFT JOIN (
+            SELECT *
+            FROM rides
+            WHERE chair_id = ?
+            ORDER BY updated_at DESC
+            LIMIT 1
+        ) r ON r.chair_id = cl.chair_id
+        WHERE cl.id = ?
+        "#,
+    )
+    .bind(&chair.id)
+    .bind(&chair_location_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    // 結果を個別の構造体に変換
+    let location = ChairLocation {
+        id: result.id,
+        chair_id: result.chair_id,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        created_at: result.created_at,
+    };
 
-    let ride: Option<Ride> =
-        sqlx::query_as("SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1")
-            .bind(chair.id)
-            .fetch_optional(&mut *tx)
-            .await?;
+    let ride = if result.ride_id.is_some() {
+        Some(Ride {
+            id: result.ride_id.unwrap(),
+            user_id: result.user_id.unwrap(),
+            chair_id: Some(chair.id.clone()),
+            pickup_latitude: result.pickup_latitude.unwrap(),
+            pickup_longitude: result.pickup_longitude.unwrap(),
+            destination_latitude: result.destination_latitude.unwrap(),
+            destination_longitude: result.destination_longitude.unwrap(),
+            evaluation: result.evaluation,
+            created_at: result.ride_created_at.unwrap(),
+            updated_at: result.ride_updated_at.unwrap(),
+        })
+    } else {
+        None
+    };
+
     if let Some(ride) = ride {
         let status = crate::get_latest_ride_status(&mut *tx, &ride.id).await?;
         if status != "COMPLETED" && status != "CANCELED" {
