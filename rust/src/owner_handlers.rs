@@ -47,12 +47,12 @@ async fn owner_post_owners(
     sqlx::query(
         "INSERT INTO owners (id, name, access_token, chair_register_token) VALUES (?, ?, ?, ?)",
     )
-    .bind(&owner_id)
-    .bind(req.name)
-    .bind(&access_token)
-    .bind(&chair_register_token)
-    .execute(&pool)
-    .await?;
+        .bind(&owner_id)
+        .bind(req.name)
+        .bind(&access_token)
+        .bind(&chair_register_token)
+        .execute(&pool)
+        .await?;
 
     let jar = jar.add(Cookie::build(("owner_session", access_token)).path("/"));
 
@@ -131,17 +131,25 @@ async fn owner_get_sales(
 
     let mut model_sales_by_model = HashMap::new();
 
+    let chair_ids = chairs.iter().map(|c| c.id.clone()).collect::<Vec<_>>();
+    let in_clause = format!("({})", chair_ids.iter().map(|_| "?").collect::<Vec<_>>().join(","));
+
+    let query_str = format!("SELECT rides.* FROM rides JOIN ride_statuses ON rides.id = ride_statuses.ride_id WHERE chair_id IN ({}) AND status = 'COMPLETED' AND updated_at BETWEEN ? AND ? + INTERVAL 999 MICROSECOND", in_clause);
+    let mut query = sqlx::query_as(&query_str);
+    for chair_id in &chair_ids {
+        query = query.bind(chair_id);
+    }
+    let reqs = query
+        .bind(since)
+        .bind(until)
+        .fetch_all(&mut *tx)
+        .await?;
+
+    let sales_by_chair = sum_sales_by_chair(&reqs);
+    res.total_sales = sales_by_chair.values().sum();
+
     for chair in chairs {
-        let reqs: Vec<Ride> = sqlx::query_as("SELECT rides.* FROM rides JOIN ride_statuses ON rides.id = ride_statuses.ride_id WHERE chair_id = ? AND status = 'COMPLETED' AND updated_at BETWEEN ? AND ? + INTERVAL 999 MICROSECOND")
-            .bind(&chair.id)
-            .bind(since)
-            .bind(until)
-            .fetch_all(&mut *tx)
-            .await?;
-
-        let sales = sum_sales(&reqs);
-        res.total_sales += sales;
-
+        let sales = *sales_by_chair.get(&chair.id).unwrap_or(&0);
         res.chairs.push(ChairSales {
             id: chair.id,
             name: chair.name,
@@ -160,6 +168,18 @@ async fn owner_get_sales(
 
 fn sum_sales(rides: &[Ride]) -> i32 {
     rides.iter().map(calculate_sale).sum()
+}
+
+///
+/// chair_idsごとに売り上げを集計する
+fn sum_sales_by_chair(rides: &[Ride]) -> HashMap<String, i32> {
+    let mut sales_by_chair = HashMap::new();
+    for ride in rides {
+        let sales = calculate_sale(ride);
+        let entry = sales_by_chair.entry(ride.chair_id.clone().unwrap()).or_insert(0);
+        *entry += sales;
+    }
+    sales_by_chair
 }
 
 fn calculate_sale(ride: &crate::models::Ride) -> i32 {
