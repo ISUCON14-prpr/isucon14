@@ -40,7 +40,6 @@ CREATE TABLE chairs
 ALTER TABLE chairs ADD INDEX idx_owner_id (owner_id);
 -- chairs テーブルに対して
 ALTER TABLE chairs ADD INDEX idx_is_active (is_active);
-ALTER TABLE chairs ADD INDEX idx_is_active_owner_id (is_active, owner_id);
 
 DROP TABLE IF EXISTS chair_locations;
 CREATE TABLE chair_locations
@@ -105,9 +104,6 @@ CREATE TABLE rides
 
 -- rides テーブルに対して
 ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
-ALTER TABLE rides ADD INDEX idx_user_id_created_at (user_id, created_at);
-ALTER TABLE rides ADD INDEX idx_chair_id_updated_at (chair_id, updated_at);
-ALTER TABLE rides ADD INDEX idx_chair_id_null (chair_id) WHERE chair_id IS NULL;
 
 DROP TABLE IF EXISTS ride_statuses;
 CREATE TABLE ride_statuses
@@ -124,8 +120,6 @@ CREATE TABLE ride_statuses
 
 -- ride_statuses テーブルに対して
 ALTER TABLE ride_statuses ADD INDEX idx_ride_id_chair_sent_at (ride_id, chair_sent_at);
-ALTER TABLE ride_statuses ADD INDEX idx_ride_id_created_at (ride_id, created_at);
-ALTER TABLE ride_statuses ADD INDEX idx_ride_id_status (ride_id, status);
 
 DROP TABLE IF EXISTS owners;
 CREATE TABLE owners
