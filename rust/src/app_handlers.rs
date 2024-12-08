@@ -587,7 +587,7 @@ async fn app_get_notification(
     else {
         return Ok(axum::Json(AppGetNotificationResponse {
             data: None,
-            retry_after_ms: Some(30),
+            retry_after_ms: Some(60),
         }));
     };
 
@@ -659,7 +659,7 @@ async fn app_get_notification(
 
     Ok(axum::Json(AppGetNotificationResponse {
         data: Some(data),
-        retry_after_ms: Some(30),
+        retry_after_ms: Some(60),
     }))
 }
 
