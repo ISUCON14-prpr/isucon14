@@ -294,13 +294,19 @@ async fn app_post_rides(
         return Err(Error::Conflict("ride already exists"));
     }
 
-    sqlx::query("INSERT INTO rides (id, user_id, pickup_latitude, pickup_longitude, destination_latitude, destination_longitude) VALUES (?, ?, ?, ?, ?, ?)")
+    sqlx::query("INSERT INTO rides (id, user_id, pickup_latitude, pickup_longitude, destination_latitude, destination_longitude, distance) VALUES (?, ?, ?, ?, ?, ?, ?)")
         .bind(&ride_id)
         .bind(&user.id)
         .bind(req.pickup_coordinate.latitude)
         .bind(req.pickup_coordinate.longitude)
         .bind(req.destination_coordinate.latitude)
         .bind(req.destination_coordinate.longitude)
+        .bind(crate::calculate_distance(
+            req.pickup_coordinate.latitude,
+            req.pickup_coordinate.longitude,
+            req.destination_coordinate.latitude,
+            req.destination_coordinate.longitude,
+        ))
         .execute(&mut *tx)
         .await?;
 
