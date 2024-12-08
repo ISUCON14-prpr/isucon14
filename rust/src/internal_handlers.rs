@@ -26,7 +26,7 @@ async fn internal_get_matching(
     }
 
     for ride in rides {
-        for _ in 0..1 {
+        for _ in 0..10 {
             let Some(matched): Option<Chair> = sqlx::query_as(
                 "SELECT
                         chairs.*,
@@ -50,20 +50,20 @@ async fn internal_get_matching(
                 return Ok(StatusCode::NO_CONTENT);
             };
 
-            // let empty: bool = sqlx::query_scalar(
-            //     "SELECT NOT EXISTS (
-            //     SELECT 1 FROM rides r
-            //     JOIN ride_statuses rs ON r.id = rs.ride_id
-            //     WHERE r.chair_id = ?
-            //     GROUP BY r.id
-            //     HAVING COUNT(rs.chair_sent_at) != 6
-            // )",
-            // )
-            // .bind(&matched.id)
-            // .fetch_one(&pool)
-            // .await?;
+            let empty: bool = sqlx::query_scalar(
+                "SELECT NOT EXISTS (
+                SELECT 1 FROM rides r
+                JOIN ride_statuses rs ON r.id = rs.ride_id
+                WHERE r.chair_id = ?
+                GROUP BY r.id
+                HAVING COUNT(rs.chair_sent_at) != 6
+            )",
+            )
+            .bind(&matched.id)
+            .fetch_one(&pool)
+            .await?;
 
-            if true {
+            if empty {
                 sqlx::query("UPDATE rides SET chair_id = ? WHERE id = ?")
                     .bind(matched.id)
                     .bind(ride.id)
