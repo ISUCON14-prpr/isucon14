@@ -282,17 +282,14 @@ async fn app_post_rides(
         .fetch_all(&mut *tx)
         .await?;
 
-    let mut continuing_ride_count = 0;
-    for ride in rides {
-        let status = crate::get_latest_ride_status(&mut *tx, &ride.id).await?;
-        if status != "COMPLETED" {
-            continuing_ride_count += 1;
-        }
-    }
+        let ride_ids: Vec<String> = rides.iter().map(|ride| ride.id.clone()).collect();
 
-    if continuing_ride_count > 0 {
-        return Err(Error::Conflict("ride already exists"));
-    }
+        let has_completed = crate::has_completed_status(&mut *tx, &ride_ids).await?;
+        
+        if has_completed {
+            return Err(Error::Conflict("ride already exists"));
+        }
+        
 
     sqlx::query("INSERT INTO rides (id, user_id, pickup_latitude, pickup_longitude, destination_latitude, destination_longitude) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(&ride_id)

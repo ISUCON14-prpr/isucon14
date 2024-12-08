@@ -72,6 +72,30 @@ where
     .await
 }
 
+pub async fn has_completed_status<'e, E>(
+    executor: E,
+    ride_ids: &[String],
+) -> sqlx::Result<bool>
+where
+    E: 'e + sqlx::Executor<'e, Database = sqlx::MySql>,
+{
+    let query = r#"
+        SELECT 1
+        FROM ride_statuses
+        WHERE ride_id IN (?)
+        AND status = 'COMPLETED'
+        LIMIT 1
+    "#;
+
+    let result: Option<i32> = sqlx::query_scalar(query)
+        .bind(ride_ids) 
+        .fetch_optional(executor)
+        .await?;
+
+    Ok(result.is_some())
+}
+
+
 // マンハッタン距離を求める
 pub fn calculate_distance(
     a_latitude: i32,
