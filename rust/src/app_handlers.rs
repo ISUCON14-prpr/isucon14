@@ -754,7 +754,7 @@ async fn app_get_nearby_chairs(
             chairs.*
         FROM 
             chairs
-        INNER JOIN 
+        LEFT JOIN 
             rides
         ON 
             chairs.id = rides.chair_id
