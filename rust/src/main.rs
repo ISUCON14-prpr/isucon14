@@ -1,4 +1,5 @@
 use axum::extract::State;
+use isuride::internal_handlers::internal_get_matching_in_thread;
 use isuride::{AppState, Error};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -34,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app_state = AppState { pool };
+    let app_state = AppState { pool: pool.clone() };
 
     let app = axum::Router::new()
         .route("/api/initialize", axum::routing::post(post_initialize))
@@ -51,7 +52,16 @@ async fn main() -> anyhow::Result<()> {
         } else {
             TcpListener::bind(&SocketAddr::from(([0, 0, 0, 0], 8080))).await?
         };
+
+    let handle = std::thread::spawn(|| async move {
+        loop  {
+            let _ = internal_get_matching_in_thread(pool.clone()).await;
+            // 0.5秒待つ
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+    });
     axum::serve(tcp_listener, app).await?;
+    handle.join().unwrap().await;
 
     Ok(())
 }
