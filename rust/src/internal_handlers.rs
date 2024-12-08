@@ -1,3 +1,17 @@
+use axum::extract::State;
+use axum::http::StatusCode;
+
+use crate::models::{Chair, Ride};
+use crate::{AppState, Error};
+
+pub fn internal_routes() -> axum::Router<AppState> {
+    axum::Router::new().route(
+        "/api/internal/matching",
+        axum::routing::get(internal_get_matching),
+    )
+}
+
+// このAPIをインスタンス内から一定間隔で叩かせることで、椅子とライドをマッチングさせる
 async fn internal_get_matching(
     State(AppState { pool, .. }): State<AppState>,
 ) -> Result<StatusCode, Error> {
