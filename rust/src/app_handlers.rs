@@ -750,7 +750,18 @@ async fn app_get_nearby_chairs(
 
     let mut tx = pool.begin().await?;
 
-    let chairs: Vec<Chair> = sqlx::query_as("SELECT * FROM chairs")
+    let chairs: Vec<Chair> = sqlx::query_as("SELECT 
+            chairs.*
+        FROM 
+            chairs
+        INNER JOIN 
+            rides
+        ON 
+            chairs.id = rides.chair_id
+        ORDER BY 
+            rides.created_at DESC,
+            rides.evaluation DESC; 
+    ")
         .fetch_all(&mut *tx)
         .await?;
 
