@@ -20,7 +20,7 @@ deploy: git-pull build mysql-setting-cp-from-webapp nginx-setting-cp-from-webapp
 # ------------------------------------------------------------
 # ------------------------------------------------------------
 # ベンチを叩く＆ログを取得するls
-.PHONY: bench
+.PHONY: analyze
 # bench: del-log-file mysql-setting-cp-from-webapp nginx-setting-cp-from-webapp exec-bench log-permit exec-query-digest exec-alp
 # 本番はこっち
 bench:  log-permit exec-query-digest exec-alp
