@@ -1,8 +1,7 @@
 use axum::extract::State;
-use isuride::{AppState, Error};
+use isuride::{create_chair_cache, AppState, Error};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
@@ -34,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app_state = AppState { pool };
+    let app_state = AppState { pool, cache: create_chair_cache() };
 
     let app = axum::Router::new()
         .route("/api/initialize", axum::routing::post(post_initialize))

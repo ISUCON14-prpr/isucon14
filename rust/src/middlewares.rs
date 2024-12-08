@@ -52,7 +52,7 @@ pub async fn owner_auth_middleware(
     Ok(next.run(req).await)
 }
 
-pub async fn chair_auth_middleware(
+pub async fn chair_auth_middleware_bk(
     State(AppState { pool, .. }): State<AppState>,
     jar: CookieJar,
     mut req: Request,
@@ -72,5 +72,38 @@ pub async fn chair_auth_middleware(
 
     req.extensions_mut().insert(chair);
 
+    Ok(next.run(req).await)
+}
+
+pub async fn chair_auth_middleware(
+    State(AppState { pool, cache, .. }): State<AppState>,
+    jar: CookieJar,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, Error> {
+    let Some(c) = jar.get("chair_session") else {
+        return Err(Error::Unauthorized("chair_session cookie is required"));
+    };
+    let access_token = c.value().to_string();
+
+    // まずキャッシュをチェック
+    if let Some(chair) = cache.read().await.get(&access_token).cloned() {
+        req.extensions_mut().insert(chair);
+        return Ok(next.run(req).await);
+    }
+
+    // キャッシュになければDBから取得
+    let Some(chair): Option<Chair> = sqlx::query_as("SELECT * FROM chairs WHERE access_token = ?")
+        .bind(&access_token)
+        .fetch_optional(&pool)
+        .await?
+    else {
+        return Err(Error::Unauthorized("invalid access token"));
+    };
+
+    // キャッシュに保存
+    cache.write().await.insert(access_token, chair.clone());
+    
+    req.extensions_mut().insert(chair);
     Ok(next.run(req).await)
 }

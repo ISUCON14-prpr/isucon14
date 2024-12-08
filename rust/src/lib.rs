@@ -1,8 +1,23 @@
 use axum::{http::StatusCode, response::Response};
 
+
+
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use crate::models::Chair;
+
+pub type ChairCache = Arc<RwLock<HashMap<String, Chair>>>;
+
+pub fn create_chair_cache() -> ChairCache {
+    Arc::new(RwLock::new(HashMap::new()))
+} 
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub pool: sqlx::MySqlPool,
+    pub cache: ChairCache,
 }
 
 #[derive(Debug, thiserror::Error)]
