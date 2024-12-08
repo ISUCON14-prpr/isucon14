@@ -852,7 +852,7 @@ async fn calculate_discounted_fare(
             coupon.discount
         } else {
             // 無いなら他のクーポンを付与された順番に使う
-            let coupon: Option<Coupon> = sqlx::query_as("SELECT * FROM coupons WHERE user_id = ? AND used_by IS NULL ORDER BY created_at LIMIT 1")
+            let coupon: Option<Coupon> = sqlx::query_as("SELECT * FROM coupons WHERE user_id = ? AND used_by IS NULL ORDER BY created_at ASC, discount DESC LIMIT 1")
                 .bind(user_id)
                 .fetch_optional(&mut *tx)
                 .await?;
