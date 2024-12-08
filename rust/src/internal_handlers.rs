@@ -22,12 +22,11 @@ async fn internal_get_matching(
     let Some(ride): Option<Ride> = sqlx::query_as(
         "SELECT * FROM rides WHERE chair_id IS NULL ORDER BY created_at LIMIT 1 FOR UPDATE"
     )
-        .fetch_optional(&mut tx)
+        .fetch_optional(&mut *tx)
         .await?
     else {
         return Ok(StatusCode::NO_CONTENT);
     };
-
     // 利用可能な椅子を一度のクエリで取得
     let available_chair: Option<Chair> = sqlx::query_as(
         "SELECT c.* FROM chairs c
@@ -41,14 +40,13 @@ async fn internal_get_matching(
          )
          LIMIT 1"
     )
-        .fetch_optional(&mut tx)
+        .fetch_optional(&mut *tx)
         .await?;
-
     if let Some(chair) = available_chair {
         sqlx::query("UPDATE rides SET chair_id = ? WHERE id = ?")
             .bind(chair.id)
             .bind(ride.id)
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await?;
         
         tx.commit().await?;
