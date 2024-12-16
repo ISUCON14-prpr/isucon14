@@ -54,7 +54,7 @@ CREATE TABLE chair_locations
   COMMENT = '椅子の現在位置情報テーブル';
 -- chair_locationsテーブルに対して
 ALTER TABLE chair_locations ADD INDEX idx_chair_id_created_at (chair_id, created_at);
-
+ALTER TABLE chair_locations ADD INDEX idx_chair_id_created_at_coords (chair_id, created_at, latitude, longitude);
 
 DROP TABLE IF EXISTS users;
 CREATE TABLE users
@@ -105,7 +105,6 @@ CREATE TABLE rides
 -- rides テーブルに対して
 ALTER TABLE rides ADD INDEX idx_chair_id_created_at (chair_id, created_at);
 
-
 DROP TABLE IF EXISTS ride_statuses;
 CREATE TABLE ride_statuses
 (
@@ -149,3 +148,6 @@ CREATE TABLE coupons
   PRIMARY KEY (user_id, code)
 )
   COMMENT 'クーポンテーブル';
+
+ALTER TABLE coupons ADD INDEX idx_user_id_code_used_by (user_id, code, used_by);
+ALTER TABLE coupons ADD INDEX idx_used_by (used_by);
